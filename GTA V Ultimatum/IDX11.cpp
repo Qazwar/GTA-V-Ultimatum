@@ -267,7 +267,23 @@ void DX11Renderer::DX11RenderScene()
 								CPed* Player = (CPed*)Game::GetPlayerByIndex(i);
 								if (Mem::IsValid(Player))
 									if (Player->Health >= 100 && Player->Health <= 999)
+									{
 										RenderEntity(_LocalPlayer, Player, TRUE);
+
+										//Render Map
+										if (Mem::IsValid(Player->Navigation) && Player->Health >= 1)
+										{
+											float rot = acos(_LocalPlayer->Navigation->Rotation.x);
+											if (asin(_LocalPlayer->Navigation->Rotation.y) < 0)
+												rot *= -1;
+
+											if (_LocalPlayer != Player)
+												RenderMapDot(_LocalPlayer->Navigation->Position, Player->Navigation->Position, Color(255, 255, 255, 255), Player->PlayerInfo->PlayerName, rot, false);
+											else
+												RenderMapDot(_LocalPlayer->Navigation->Position, Player->Navigation->Position, Color(255, 0, 0, 255), "", rot, false);
+										}
+									}
+										
 							}
 						}
 					}
@@ -283,6 +299,100 @@ void DX11Renderer::DX11RenderScene()
 	}
 }
 
+void DX11Renderer::drawMapBackground()
+{
+
+}
+
+//TODO: extract to math functions
+void vect3_vect3_sub(const Vector3 in1, const Vector3 in2, Vector3 *out)
+{
+	out->x = in1.x - in2.x;
+	out->y = in1.y - in2.y;
+	out->z = in1.z - in2.z;
+
+}
+
+
+#define WIDTH 1920
+#define HEIGHT 1080
+#define mapZoomfactor 0.2
+
+
+void DX11Renderer::RenderMapDot(const Vector3 self_pos, const Vector3 pos, Color color, const char *name, float rotation, bool drawLine = false)
+{
+	static int	init;
+	Vector3 vect;
+	Vector2 rvect;
+	float		a, x, y;
+
+	vect3_vect3_sub(pos, self_pos, &vect);
+
+	//if out of screen range
+	//if (!set.map_background_and_zoom_enable && vect3_length(vect) > 1000.0f)
+		//return;
+
+	
+	// rotate around center
+	//a = -atan2f(cam_matrix[4 * 0 + 0], cam_matrix[4 * 0 + 1]) - M_PI / 2.0f;
+
+	rvect.x = vect.x * cosf(rotation) + vect.y * sinf(rotation);
+	rvect.y = vect.x * sinf(rotation) - vect.y * cosf(rotation);
+
+	rvect.y /= WIDTH / HEIGHT;
+
+	
+	//if (set.map_background_and_zoom_enable)
+	{
+		rvect.x *= mapZoomfactor;
+		rvect.y *= mapZoomfactor;
+	}
+
+	x = (float)WIDTH / 2 + roundf(rvect.x);
+	y = (float)HEIGHT / 2 + roundf(rvect.y);
+
+
+
+	if (x < 0.0f || x > WIDTH || y < 0.0f || y > HEIGHT)
+		return;
+
+	if (drawLine)
+	{
+		DrawLine(x, y, WIDTH / 2, HEIGHT / 2, Color(255, 255, 255, 255));
+	}
+	{
+		if (name != NULL)
+			DX11->DrawDXText(floor(x + 10.5f), floor(y), 0.8, false, 0, Color(100, 255, 100, 255), false, name);
+
+		if (vect.z < -4.0f)
+		{
+			DX11->DrawDXText(floor(x - 4.5f), floor(y-4.5f), 1, false, 0, Color(255, 255, 255, 255), false, "v");
+			return;
+		}
+		else if (vect.z <= 4.0f)
+		{
+			DX11->DrawDXText(floor(x - 4.5f), floor(y-4.5f), 1, false, 0, Color(255, 255, 255, 255), false, "o");
+			return;
+		}
+		else if (vect.z > 4.0f)
+		{
+			DX11->DrawDXText(floor(x - 4.5f), floor(y+4.5f), 1, false, 0, Color(255, 255, 255, 255), false, "^");
+			return;
+		}
+	}
+}
+
+void DX11Renderer::RenderMap()
+{
+	//if (set.map_background_and_zoom_enable)
+	{
+		drawMapBackground();
+	}
+
+
+	// self
+	//RenderMapDot(&self->base.matrix[4 * 3], &self->base.matrix[4 * 3], D3DCOLOR_XRGB(255, 255, 255), NULL);
+}
 
 HRESULT HookedDX11Renderer(IDXGISwapChain* _SwapChain, UINT SyncInterval, UINT Flags)
 {

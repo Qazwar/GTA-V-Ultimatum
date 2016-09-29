@@ -112,6 +112,11 @@ public:
 	BOOLEAN InitDX11RenderStuff(IDXGISwapChain* _SwapChain);
 
 	void DX11RenderScene();
+	void RenderMap();
+	void drawMapBackground();
+
+	void RenderMapDot(const Vector3 self_pos, const Vector3 pos, Color color, const char *name, float rotation, bool drawLine);
+
 
 	std::wstring ConvertToWStr(const std::string& s);
 
